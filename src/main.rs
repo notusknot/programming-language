@@ -1,18 +1,19 @@
 mod scanner;
 mod tokenizer;
 
+use crate::scanner::Scanner;
 use std::env;
 use std::fs::File;
 use std::io::prelude::*;
 use std::io::{stdin, stdout, Write};
 use std::path::Path;
 
-fn throw_error(line: i32, message: &str) {
+fn throw_error(line: usize, message: &str) {
     todo!("Implement had_error");
     report_error(line, message);
 }
 
-fn report_error(line: i32, message: &str) {
+fn report_error(line: usize, message: &str) {
     panic!("Error on line {}:\n{}", line, message);
 }
 
@@ -44,9 +45,13 @@ fn read_file(path: &str, errored: bool) {
     execute(file_content);
 }
 
-fn execute(code: String) -> String {
-    print!("{code}");
-    code
+fn execute(source: String) {
+    let mut scanner = Scanner::new(source);
+    let tokens = scanner.scan_tokens();
+
+    for token in tokens {
+        println!("{:?}", token);
+    }
 }
 
 fn run_prompt() {

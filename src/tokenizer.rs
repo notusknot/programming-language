@@ -1,4 +1,4 @@
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -25,8 +25,8 @@ pub enum TokenType {
 
     // Literals.
     Identifier,
-    String,
-    Number,
+    StringLiteral(String),
+    Number(f32),
 
     // Keywords.
     And,
@@ -49,9 +49,10 @@ pub enum TokenType {
     Eof,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub line: i32,
+    pub literal: Option<String>,
+    pub line: usize,
 }
