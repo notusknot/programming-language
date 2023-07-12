@@ -1,3 +1,4 @@
+mod expr;
 mod scanner;
 mod tokenizer;
 
@@ -74,7 +75,7 @@ fn main() {
 
     let args_length = cli_args.len() - 1;
 
-    let mut errored = false;
+    let errored = false;
 
     match args_length {
         n if n > 1 => println!("Usage: rlox [script]"),

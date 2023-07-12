@@ -63,9 +63,9 @@ impl Scanner {
     }
 
     fn advance(&mut self) -> char {
-        let c = self.peek();
+        let character = self.peek();
         self.current = self.current + 1;
-        c
+        character
     }
 
     fn peek(&mut self) -> char {
