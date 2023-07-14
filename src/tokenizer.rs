@@ -1,4 +1,5 @@
-#[derive(Debug, Clone)]
+use std::ops::Range;
+
 pub enum Object {
     Num(f64),
     Str(String),
@@ -7,7 +8,7 @@ pub enum Object {
     False,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -34,10 +35,18 @@ pub enum TokenType {
 
     // Literals.
     Identifier,
-    StringLiteral(String),
+    StringLiteral,
     Number(f32),
 
     // Keywords.
+    Keyword(KeywordType),
+    Unknown,
+
+    Whitespace,
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum KeywordType {
     And,
     Class,
     Else,
@@ -54,18 +63,30 @@ pub enum TokenType {
     True,
     Var,
     While,
+}
 
-    Eof,
+/// A byte range representing a location in a source string.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Span {
+    /// The (inclusive) start position of the span in bytes.
+    pub start: usize,
+    /// The (exclusive) end position of the span in bytes.
+    pub end: usize,
+}
 
-    Unknown,
+impl From<Range<usize>> for Span {
+    fn from(value: Range<usize>) -> Self {
+        Self {
+            start: value.start,
+            end: value.end,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: String,
-    pub literal: Option<Object>,
-    pub line: usize,
+    pub span: Span,
 }
 /*
 impl Token {

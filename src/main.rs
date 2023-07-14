@@ -11,7 +11,7 @@ use std::io::{self, stdin, stdout, Write};
 
 fn run_file(path: &str) -> io::Result<()> {
     let file_content = std::fs::read_to_string(path)?;
-    if execute(file_content).is_err() {
+    if execute(&file_content).is_err() {
         // Ignore: error was already reported
         std::process::exit(65);
     }
@@ -19,7 +19,8 @@ fn run_file(path: &str) -> io::Result<()> {
     Ok(())
 }
 
-fn execute(source: String) -> Result<(), LoxError> {
+// the result is useless for now but will be useful eventually
+fn execute(source: &str) -> Result<(), LoxError> {
     let scanner = Scanner::new(source);
 
     for token in scanner {
@@ -39,7 +40,7 @@ fn run_prompt() {
             .read_line(&mut line_input)
             .expect("Failed to read line");
 
-        if execute(line_input).is_err() {
+        if execute(&line_input).is_err() {
             eprintln!("Failed to execute file");
         };
     }
