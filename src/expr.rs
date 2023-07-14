@@ -1,123 +1,72 @@
-#[derive(Debug, Clone)]
+#![allow(dead_code)]
+#![allow(unused_variables)]
+use crate::error::*;
+use crate::tokenizer::*;
+
 pub enum Expr {
-    Literal(Literal),
-    This(SourceLocation),
-    Unary(UnaryOp, Box<Expr>),
-    Binary(Box<Expr>, BinaryOp, Box<Expr>),
-    Call(Box<Expr>, SourceLocation, Vec<Expr>),
-    Get(Box<Expr>, Symbol),
-    Grouping(Box<Expr>),
-    Variable(Symbol),
-    Assign(Symbol, Box<Expr>),
-    Logical(Box<Expr>, LogicalOp, Box<Expr>),
-    Set(Box<Expr>, Symbol, Box<Expr>),
-    Super(SourceLocation, Symbol),
-    List(Vec<Expr>),
-    Subscript {
-        value: Box<Expr>,
-        slice: Box<Expr>,
-        source_location: SourceLocation,
-    },
-    SetItem {
-        lhs: Box<Expr>,
-        slice: Box<Expr>,
-        rhs: Box<Expr>,
-        source_location: SourceLocation,
-    },
-    Lambda(LambdaDecl),
+    Binary(BinaryExpr),
+    Grouping(GroupingExpr),
+    Literal(LiteralExpr),
+    Unary(UnaryExpr),
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct SourceLocation {
-    pub line: usize,
-    pub col: i64,
+impl Expr {
+    pub fn accept<T>(&self, expr_visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
+        match self {
+            Expr::Binary(v) => v.accept(expr_visitor),
+            Expr::Grouping(v) => v.accept(expr_visitor),
+            Expr::Literal(v) => v.accept(expr_visitor),
+            Expr::Unary(v) => v.accept(expr_visitor),
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub enum LogicalOp {
-    Or,
-    And,
+pub struct BinaryExpr {
+    pub left: Box<Expr>,
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
-pub struct Symbol {
-    pub name: String,
-    pub line: usize,
-    pub col: i64,
+pub struct GroupingExpr {
+    pub expression: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
-pub struct FunDecl {
-    pub name: Symbol,
-    pub params: Vec<Symbol>,
-    pub body: Vec<Stmt>,
+pub struct LiteralExpr {
+    pub value: Option<Object>,
 }
 
-#[derive(Debug, Clone)]
-pub struct LambdaDecl {
-    pub params: Vec<Symbol>,
-    pub body: Vec<Stmt>,
+pub struct UnaryExpr {
+    pub operator: Token,
+    pub right: Box<Expr>,
 }
 
-#[derive(Debug, Clone)]
-pub struct ClassDecl {
-    pub name: Symbol,
-    pub superclass: Option<Symbol>,
-    pub methods: Vec<FunDecl>,
+pub trait ExprVisitor<T> {
+    fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<T, LoxError>;
+    fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<T, LoxError>;
+    fn visit_literal_expr(&self, expr: &LiteralExpr) -> Result<T, LoxError>;
+    fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<T, LoxError>;
 }
 
-#[derive(Debug, Clone)]
-pub enum Stmt {
-    Expr(Expr),
-    FunDecl(FunDecl),
-    ClassDecl(ClassDecl),
-    If(Expr, Box<Stmt>, Option<Box<Stmt>>),
-    Print(Expr),
-    VarDecl(Symbol, Option<Expr>),
-    Block(Vec<Stmt>),
-    Return(SourceLocation, Option<Expr>),
-    While(Expr, Box<Stmt>),
+impl BinaryExpr {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_binary_expr(self)
+    }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum UnaryOpTy {
-    Minus,
-    Bang,
+impl GroupingExpr {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_grouping_expr(self)
+    }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub struct UnaryOp {
-    pub ty: UnaryOpTy,
-    pub line: usize,
-    pub col: i64,
+impl LiteralExpr {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_literal_expr(self)
+    }
 }
 
-#[derive(Debug, Copy, Clone)]
-pub enum BinaryOpTy {
-    EqualEqual,
-    NotEqual,
-    Less,
-    LessEqual,
-    Greater,
-    GreaterEqual,
-    Plus,
-    Minus,
-    Star,
-    Slash,
-}
-
-#[derive(Debug, Copy, Clone)]
-pub struct BinaryOp {
-    pub ty: BinaryOpTy,
-    pub line: usize,
-    pub col: i64,
-}
-
-#[derive(Debug, Clone)]
-pub enum Literal {
-    Number(f64),
-    String(String),
-    True,
-    False,
-    Nil,
+impl UnaryExpr {
+    pub fn accept<T>(&self, visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_unary_expr(self)
+    }
 }

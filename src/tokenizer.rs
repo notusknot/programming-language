@@ -1,4 +1,13 @@
-#[derive(Clone, Debug)]
+#[derive(Debug, Clone)]
+pub enum Object {
+    Num(f64),
+    Str(String),
+    Nil,
+    True,
+    False,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -47,12 +56,23 @@ pub enum TokenType {
     While,
 
     Eof,
+
+    Unknown,
 }
 
 #[derive(Clone, Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<String>,
+    pub literal: Option<Object>,
     pub line: usize,
 }
+/*
+impl Token {
+    pub fn new(token_type: TokenType, line) -> Self {
+        Self {
+            token_type:
+        }
+    }
+}
+*/

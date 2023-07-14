@@ -1,20 +1,25 @@
-use crate::throw_error;
-use crate::tokenizer::TokenType::*;
-use crate::tokenizer::*;
+use crate::tokenizer::{Token, TokenType, TokenType::*};
 use std::collections::HashMap;
 use std::string::String;
 
 pub struct Scanner {
     source: String,
-    tokens: Vec<Token>,
     keywords: HashMap<String, TokenType>,
     start: usize,
     current: usize,
     line: usize,
 }
 
+impl Iterator for Scanner {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.scan_token()
+    }
+}
+
 impl Scanner {
-    pub fn new(source: String) -> Scanner {
+    pub fn new(source: String) -> Self {
         let mut keywords = HashMap::new();
         keywords.insert("and".to_string(), And);
         keywords.insert("class".to_string(), Class);
@@ -33,29 +38,13 @@ impl Scanner {
         keywords.insert("var".to_string(), Var);
         keywords.insert("while".to_string(), While);
 
-        Scanner {
+        Self {
             source,
-            tokens: vec![],
             keywords,
             current: 0,
             start: 0,
             line: 0,
         }
-    }
-
-    pub fn scan_tokens(&mut self) -> Vec<Token> {
-        while !self.is_at_end() {
-            self.start = self.current;
-            self.scan_token();
-        }
-
-        self.tokens.push(Token {
-            token_type: Eof,
-            lexeme: "".to_string(),
-            literal: None,
-            line: self.line,
-        });
-        self.tokens.clone()
     }
 
     fn is_at_end(&self) -> bool {
@@ -64,78 +53,80 @@ impl Scanner {
 
     fn advance(&mut self) -> char {
         let character = self.peek();
-        self.current = self.current + 1;
+        self.current += 1;
         character
     }
 
-    fn peek(&mut self) -> char {
+    fn peek(&self) -> char {
         if self.is_at_end() {
             return '\0';
         }
 
-        let c = self.source.as_str().chars().nth(self.current).unwrap();
-        c
+        // this unwrap is safe because reaching None means the job is done
+        self.source.as_str().chars().nth(self.current).unwrap()
     }
 
-    fn peek_two(&mut self) -> char {
+    fn peek_two(&self) -> char {
         if self.is_at_end() {
             return '\0';
         }
 
-        let c = self.source.as_str().chars().nth(self.current + 1).unwrap();
-        c
+        // this unwrap is safe because reaching None means the job is done
+        self.source.as_str().chars().nth(self.current + 1).unwrap()
     }
 
-    fn add_token(&mut self, token_type: TokenType) {
+    fn make_token(&self, token_type: TokenType) -> Option<Token> {
         let text = &self.source[(self.start)..(self.current)];
-        self.tokens.push(Token {
+        Some(Token {
             token_type,
             lexeme: text.to_string(),
             literal: None,
             line: self.line,
-        });
+        })
     }
 
-    pub fn scan_token(&mut self) {
-        let c = self.advance();
-
-        match c {
-            '(' => self.add_token(LeftParen),
-            ')' => self.add_token(RightParen),
-            '{' => self.add_token(LeftBrace),
-            '}' => self.add_token(RightBrace),
-            ',' => self.add_token(Comma),
-            '.' => self.add_token(Dot),
-            '-' => self.add_token(Minus),
-            '+' => self.add_token(Plus),
-            ';' => self.add_token(Semicolon),
-            '*' => self.add_token(Star),
+    pub fn scan_token(&mut self) -> Option<Token> {
+        match self.advance() {
+            '\"' => self.string(), // string literals
+            '0'..='9' => self.number(),
+            'a'..='z' | 'A'..='Z' => self.identifier(),
+            ' ' | '\r' | '\t' => None, // Ignore whitespace
+            '(' => self.make_token(LeftParen),
+            ')' => self.make_token(RightParen),
+            '{' => self.make_token(LeftBrace),
+            '}' => self.make_token(RightBrace),
+            ',' => self.make_token(Comma),
+            '.' => self.make_token(Dot),
+            '-' => self.make_token(Minus),
+            '+' => self.make_token(Plus),
+            ';' => self.make_token(Semicolon),
+            '*' => self.make_token(Star),
             '!' => {
                 if self.match_next('=') {
-                    self.add_token(BangEqual)
+                    self.make_token(BangEqual)
                 } else {
-                    self.add_token(Bang)
+                    self.make_token(Bang)
                 }
             }
             '=' => {
                 if self.match_next('=') {
-                    self.add_token(EqualEqual)
+                    self.make_token(EqualEqual)
                 } else {
-                    self.add_token(Equal)
+                    self.make_token(Equal)
                 }
             }
             '<' => {
                 if self.match_next('=') {
-                    self.add_token(LessEqual)
+                    self.make_token(LessEqual)
                 } else {
-                    self.add_token(Less)
+                    self.make_token(Less)
                 }
             }
             '>' => {
                 if self.match_next('=') {
-                    self.add_token(GreaterEqual)
+                    self.make_token(GreaterEqual)
                 } else {
-                    self.add_token(Greater)
+                    self.make_token(Greater)
                 }
             }
             '/' => {
@@ -143,65 +134,58 @@ impl Scanner {
                     while self.peek() != '\n' && !self.is_at_end() {
                         self.advance();
                     }
+                    None
                 } else {
-                    self.add_token(Slash);
+                    self.make_token(Slash)
                 }
             }
 
-            '\"' => self.string(),
-
-            '0'..='9' => self.number(),
-
-            'a'..='z' | 'A'..='Z' => self.identifier(),
-
-            ' ' | '\r' | '\t' => (), // Ignore whitespace
-
-            '\n' => self.line = self.line + 1,
-
-            _ => throw_error(self.line, "Unexpected character"),
+            '\n' => {
+                self.line += 1;
+                None
+            }
+            _ => None,
         }
     }
 
-    fn string(&mut self) {
+    fn string(&mut self) -> Option<Token> {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
-                self.line += 1
+                self.line += 1;
             }
             self.advance();
         }
 
         if self.is_at_end() {
-            throw_error(self.line, "Unterminated string");
-            return;
+            panic!("unterminated string");
         }
 
         // the closing "
         self.advance();
 
-        // immutable borrow
         let value = &self.source[self.start + 1..self.current - 1];
-        self.add_token(StringLiteral(value.to_string()));
+        self.make_token(StringLiteral(value.to_string()))
     }
 
-    fn number(&mut self) {
-        while self.peek().is_digit(10) {
+    fn number(&mut self) -> Option<Token> {
+        while self.peek().is_ascii_digit() {
             self.advance();
         }
 
-        if self.peek() == '.' && self.peek_two().is_digit(10) {
+        if self.peek() == '.' && self.peek_two().is_ascii_digit() {
             self.advance();
 
-            while self.peek().is_digit(10) {
+            while self.peek().is_ascii_digit() {
                 self.advance();
             }
         }
 
         let number_text = &self.source[self.start..self.current];
         let value: f32 = number_text.parse().expect("Failed to parse number");
-        self.add_token(Number(value));
+        self.make_token(Number(value))
     }
 
-    fn identifier(&mut self) {
+    fn identifier(&mut self) -> Option<Token> {
         while self.peek().is_alphanumeric() {
             self.advance();
         }
@@ -213,7 +197,7 @@ impl Scanner {
             token_type = Some(&Identifier);
         }
 
-        self.add_token(token_type.unwrap().clone());
+        self.make_token(token_type.expect("Failed to recognize token type").clone())
     }
 
     fn match_next(&mut self, expected: char) -> bool {

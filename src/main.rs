@@ -1,61 +1,36 @@
+mod error;
 mod expr;
 mod scanner;
 mod tokenizer;
 
+use error::LoxError;
+
 use crate::scanner::Scanner;
 use std::env;
-use std::fs::File;
-use std::io::prelude::*;
-use std::io::{stdin, stdout, Write};
-use std::path::Path;
+use std::io::{self, stdin, stdout, Write};
 
-fn throw_error(line: usize, message: &str) {
-    todo!("Implement had_error");
-    report_error(line, message);
+fn run_file(path: &str) -> io::Result<()> {
+    let file_content = std::fs::read_to_string(path)?;
+    if execute(file_content).is_err() {
+        // Ignore: error was already reported
+        std::process::exit(65);
+    }
+
+    Ok(())
 }
 
-fn report_error(line: usize, message: &str) {
-    panic!("Error on line {}:\n{}", line, message);
-}
+fn execute(source: String) -> Result<(), LoxError> {
+    let scanner = Scanner::new(source);
 
-fn read_file(path: &str, errored: bool) {
-    let path = Path::new(&path);
-    let display = path.display();
-
-    // Open the path in read-only mode, returns `io::Result<File>`
-    let mut file = match File::open(path) {
-        Err(why) => panic!("couldn't open {display}: {why}"),
-        Ok(file) => file,
-    };
-
-    // Read the file contents into a string, returns `io::Result<usize>`
-    let mut file_content = String::new();
-    match file.read_to_string(&mut file_content) {
-        Err(why) => panic!("couldn't read {display}: {why}"),
-        Ok(_) => (),
+    for token in scanner {
+        println!("{token:?}");
     }
 
-    if let Err(why) = file.read_to_string(&mut file_content) {
-        panic!("couldn't read {display}: {why}")
-    }
-
-    if errored {
-        panic!();
-    }
-
-    execute(file_content);
-}
-
-fn execute(source: String) {
-    let mut scanner = Scanner::new(source);
-    let tokens = scanner.scan_tokens();
-
-    for token in tokens {
-        println!("{:?}", token);
-    }
+    Ok(())
 }
 
 fn run_prompt() {
+    println!("Rlox");
     loop {
         let mut line_input: String = String::new();
         print!("> ");
@@ -64,22 +39,20 @@ fn run_prompt() {
             .read_line(&mut line_input)
             .expect("Failed to read line");
 
-        execute(line_input);
+        if execute(line_input).is_err() {
+            eprintln!("Failed to execute file");
+        };
     }
 }
 
 fn main() {
-    println!("Rlox");
-
     let cli_args: Vec<String> = env::args().collect();
 
     let args_length = cli_args.len() - 1;
 
-    let errored = false;
-
     match args_length {
         n if n > 1 => println!("Usage: rlox [script]"),
-        1 => read_file(&cli_args[1], errored),
+        1 => run_file(&cli_args[1]).expect("Failed to run file"),
         _ => run_prompt(),
     }
 }
