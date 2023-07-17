@@ -1,8 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
-use crate::error::*;
-use crate::tokenizer::*;
+use crate::error::LoxError;
+use crate::tokenizer::{Object, Token};
 
+#[derive(Debug)]
 pub enum Expr {
     Binary(BinaryExpr),
     Grouping(GroupingExpr),
@@ -13,28 +14,32 @@ pub enum Expr {
 impl Expr {
     pub fn accept<T>(&self, expr_visitor: &dyn ExprVisitor<T>) -> Result<T, LoxError> {
         match self {
-            Expr::Binary(v) => v.accept(expr_visitor),
-            Expr::Grouping(v) => v.accept(expr_visitor),
-            Expr::Literal(v) => v.accept(expr_visitor),
-            Expr::Unary(v) => v.accept(expr_visitor),
+            Self::Binary(v) => v.accept(expr_visitor),
+            Self::Grouping(v) => v.accept(expr_visitor),
+            Self::Literal(v) => v.accept(expr_visitor),
+            Self::Unary(v) => v.accept(expr_visitor),
         }
     }
 }
 
+#[derive(Debug)]
 pub struct BinaryExpr {
     pub left: Box<Expr>,
     pub operator: Token,
     pub right: Box<Expr>,
 }
 
+#[derive(Debug)]
 pub struct GroupingExpr {
     pub expression: Box<Expr>,
 }
 
+#[derive(Debug)]
 pub struct LiteralExpr {
     pub value: Option<Object>,
 }
 
+#[derive(Debug)]
 pub struct UnaryExpr {
     pub operator: Token,
     pub right: Box<Expr>,

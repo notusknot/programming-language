@@ -1,5 +1,7 @@
+use std::fmt;
 use std::ops::Range;
 
+#[derive(Debug)]
 pub enum Object {
     Num(f64),
     Str(String),
@@ -8,7 +10,19 @@ pub enum Object {
     False,
 }
 
-#[derive(Copy, Clone, Debug)]
+impl fmt::Display for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Object::Num(x) => write!(f, "{x}"),
+            Object::Str(x) => write!(f, "\"{x}\""),
+            Object::Nil => write!(f, "nil"),
+            Object::True => write!(f, "true"),
+            Object::False => write!(f, "false"),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -36,16 +50,22 @@ pub enum TokenType {
     // Literals.
     Identifier,
     StringLiteral,
-    Number(f32),
+    Number,
 
     // Keywords.
     Keyword(KeywordType),
     Unknown,
+    Eof,
 
     Whitespace,
+    Comment,
+
+    True,
+    False,
+    Nil,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum KeywordType {
     And,
     Class,
@@ -83,17 +103,32 @@ impl From<Range<usize>> for Span {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub span: Span,
 }
-/*
+
 impl Token {
-    pub fn new(token_type: TokenType, line) -> Self {
-        Self {
-            token_type:
-        }
+    pub fn as_string(&self) -> String {
+        format!("{:?}", self.token_type)
     }
 }
-*/
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let start = self.span.start;
+        let end = self.span.end;
+        write!(
+            f,
+            "{:?}",
+            self.token_type,
+            //self.lexeme,
+            /*if let Some(literal) = &self.literal {
+                literal.to_string()
+            } else {
+                "None".to_string()
+            }*/
+        )
+    }
+}

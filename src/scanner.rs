@@ -1,9 +1,8 @@
 use crate::tokenizer::{KeywordType, KeywordType::*, Span, Token, TokenType, TokenType::*};
-use std::collections::HashMap;
 use std::str::Chars;
 
-pub struct Cursor<'input> {
-    chars: Chars<'input>,
+pub struct Cursor<'source> {
+    chars: Chars<'source>,
     byte_pos: usize,
 }
 
@@ -40,7 +39,7 @@ impl<'input> Cursor<'input> {
     }
 
     fn advance_if(&mut self, expected: char) -> bool {
-        if self.peek().unwrap_or_default() == expected {
+        if self.peek().unwrap() == expected {
             self.advance();
             true
         } else {
@@ -51,7 +50,6 @@ impl<'input> Cursor<'input> {
 
 pub struct Scanner<'input> {
     source: &'input str,
-    keywords: HashMap<&'input str, KeywordType>,
     cursor: Cursor<'input>,
 }
 
@@ -65,27 +63,8 @@ impl<'input> Iterator for Scanner<'input> {
 
 impl<'input> Scanner<'input> {
     pub fn new(source: &'input str) -> Self {
-        let mut keywords = HashMap::new();
-        keywords.insert("and", And);
-        keywords.insert("class", Class);
-        keywords.insert("else", Else);
-        keywords.insert("false", False);
-        keywords.insert("for", For);
-        keywords.insert("fun", Fun);
-        keywords.insert("if", If);
-        keywords.insert("nil", Nil);
-        keywords.insert("or", Or);
-        keywords.insert("print", Print);
-        keywords.insert("return", Return);
-        keywords.insert("super", Super);
-        keywords.insert("this", This);
-        keywords.insert("true", True);
-        keywords.insert("var", Var);
-        keywords.insert("while", While);
-
         Self {
             source,
-            keywords,
             cursor: Cursor {
                 chars: source.chars(),
                 byte_pos: 0,
@@ -97,8 +76,8 @@ impl<'input> Scanner<'input> {
         let start = self.cursor.byte_pos;
         let token_type = match self.cursor.advance()? {
             '"' => self.string()?, // string literals
-            '0'..='9' => self.number()?,
-            'a'..='z' | 'A'..='Z' => self.identifier(start),
+            '0'..='9' => self.number(start)?,
+            'a'..='z' | 'A'..='Z' => self.identifier_or_keyword(start),
             c if c.is_whitespace() => self.whitespace(),
             '(' => LeftParen,
             ')' => RightParen,
@@ -138,18 +117,15 @@ impl<'input> Scanner<'input> {
                     Greater
                 }
             }
-
             '/' => {
-                if self.cursor.advance_if('/') {
-                    while self.cursor.peek()? != '\n' {
-                        self.cursor.advance()?;
+                match self.cursor.peek() {
+                    Some('/') => {
+                        self.cursor.skip_while(|c| c != '\n'); // Comment ends at the end of line
+                        Comment
                     }
-                    None?
-                } else {
-                    Slash
+                    _ => Slash,
                 }
             }
-            '\n' => None?,
 
             _ => Unknown,
         };
@@ -175,7 +151,7 @@ impl<'input> Scanner<'input> {
         Some(StringLiteral)
     }
 
-    fn number(&mut self) -> Option<TokenType> {
+    fn number(&mut self, start: usize) -> Option<TokenType> {
         while self.cursor.peek()?.is_ascii_digit() {
             self.cursor.advance();
         }
@@ -188,19 +164,35 @@ impl<'input> Scanner<'input> {
             }
         }
 
-        let number_text = &self.source[0..self.cursor.byte_pos];
-        let value: f32 = number_text.parse().expect("Failed to parse number");
-        Some(Number(value))
+        //let number_text = &self.source[start..self.cursor.byte_pos];
+        //let value: f32 = number_text.parse().expect("Failed to parse number");
+        //Some(Number(value))
+        Some(Number)
     }
 
-    fn identifier(&mut self, start: usize) -> TokenType {
+    fn identifier_or_keyword(&mut self, start: usize) -> TokenType {
         self.cursor.skip_while(char::is_alphanumeric);
 
         let text = &self.source[start..self.cursor.byte_pos];
 
-        match self.keywords.get(text).copied() {
-            Some(keyword) => Keyword(keyword),
-            None => Identifier,
+        match text {
+            "class" => Keyword(Class),
+            "and" => Keyword(And),
+            "else" => Keyword(Else),
+            "false" => Keyword(KeywordType::False),
+            "for" => Keyword(For),
+            "fun" => Keyword(Fun),
+            "if" => Keyword(If),
+            "nil" => Keyword(KeywordType::Nil),
+            "or" => Keyword(Or),
+            "print" => Keyword(Print),
+            "return" => Keyword(Return),
+            "super" => Keyword(Super),
+            "this" => Keyword(This),
+            "true" => Keyword(KeywordType::True),
+            "var" => Keyword(Var),
+            "while" => Keyword(While),
+            _ => Identifier,
         }
     }
 

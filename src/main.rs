@@ -1,7 +1,13 @@
 mod error;
 mod expr;
+mod parser;
+use parser::*;
 mod scanner;
 mod tokenizer;
+use tokenizer::{Span, Token, TokenType::*};
+
+mod ast_printer;
+use ast_printer::*;
 
 use error::LoxError;
 
@@ -21,11 +27,30 @@ fn run_file(path: &str) -> io::Result<()> {
 
 // the result is useless for now but will be useful eventually
 fn execute(source: &str) -> Result<(), LoxError> {
-    let scanner = Scanner::new(source);
+    let mut scanner = Scanner::new(source);
 
-    for token in scanner {
+    //temporary
+    //TODO: use the iterator instead of collecting
+    let mut tokens: Vec<Token> = scanner.collect();
+    /*
+    let last_span = tokens.last().unwrap().span;
+    tokens.push(Token {
+        token_type: Eof,
+        span: Span::from(last_span.end + 1..last_span.end + 1),
+    });
+    */
+
+    println!("Tokens:");
+    for token in &tokens {
         println!("{token:?}");
     }
+
+    println!("\nExpressions:");
+
+    let mut parser = Parser::new(source, tokens);
+
+    let printer = AstPrinter { source };
+    println!("AST Printer:\n{}", printer.print(&parser.parse()?)?);
 
     Ok(())
 }
