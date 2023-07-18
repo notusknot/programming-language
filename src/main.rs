@@ -6,9 +6,6 @@ mod scanner;
 mod tokenizer;
 use tokenizer::{Span, Token, TokenType::*};
 
-mod ast_printer;
-use ast_printer::*;
-
 use error::LoxError;
 
 use crate::scanner::Scanner;
@@ -45,12 +42,14 @@ fn execute(source: &str) -> Result<(), LoxError> {
         println!("{token:?}");
     }
 
-    println!("\nExpressions:");
-
     let mut parser = Parser::new(source, tokens);
 
+    /*
     let printer = AstPrinter { source };
-    println!("AST Printer:\n{}", printer.print(&parser.parse()?)?);
+    println!("\nAST: \n{}", printer.print(&parser.parse()?)?);
+    println!("{:#?}", parser.parse());
+    */
+    println!("{:#?}", parser.parse());
 
     Ok(())
 }

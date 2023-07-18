@@ -1,7 +1,10 @@
 use crate::error::{ErrorType::*, LoxError};
 use crate::expr::*;
-use crate::tokenizer::{Object, Object::*, Token, TokenType, TokenType::*};
+use crate::tokenizer::{
+    KeywordType, KeywordType::*, Object, Object::*, Token, TokenType, TokenType::*,
+};
 
+#[derive(Debug)]
 pub struct Parser<'source> {
     tokens: Vec<Token>,
     source: &'source str,
@@ -36,11 +39,11 @@ impl<'source> Parser<'source> {
         let mut expr = self.comparison()?;
 
         while self.is_match(&[BangEqual, Equal]) {
-            let operator = self.previous();
+            let operator = self.previous().unwrap();
             let right = self.comparison()?;
             expr = Ok(Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
-                operator: operator.unwrap(),
+                operator,
                 right: Box::new(right),
             }))?;
         }
@@ -51,7 +54,7 @@ impl<'source> Parser<'source> {
     fn comparison(&mut self) -> Result<Expr, LoxError> {
         let mut expr = self.term()?;
 
-        while self.is_match(&[Greater, GreaterEqual, Less, LessEqual]) {
+        while self.is_match(&[Greater, GreaterEqual, Less, LessEqual, EqualEqual]) {
             let operator = self.previous().unwrap();
             let right = self.term()?;
             expr = Ok(Expr::Binary(BinaryExpr {
@@ -69,7 +72,8 @@ impl<'source> Parser<'source> {
 
         while self.is_match(&[Minus, Plus]) {
             let operator = self.previous().unwrap();
-            let right = self.term()?;
+            println!("{}", operator);
+            let right = self.factor()?;
             expr = Ok(Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
                 operator,
@@ -110,14 +114,14 @@ impl<'source> Parser<'source> {
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
-        if self.is_match(&[TokenType::False]) {
+        if self.is_match(&[TokenType::Keyword(KeywordType::False)]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Object::False),
             }));
         }
-        if self.is_match(&[TokenType::True]) {
+        if self.is_match(&[TokenType::Keyword(KeywordType::True)]) {
             return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Object::False),
+                value: Some(Object::True),
             }));
         }
         if self.is_match(&[TokenType::Nil]) {
@@ -133,19 +137,35 @@ impl<'source> Parser<'source> {
             }));
         }
 
-        let start = self.previous().unwrap().span.start;
-        let end = self.previous().unwrap().span.end;
+        let start = self.peek().unwrap().span.start;
+        let end = self.peek().unwrap().span.end;
 
         /* TODO: figure out how to get the literal from the span */
-        if self.is_match(&[TokenType::Number, TokenType::StringLiteral]) {
+        if self.is_match(&[TokenType::StringLiteral]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Str(self.source[start..end].to_string())),
             }));
         }
 
+        /*
+        if self.is_match(&[TokenType::Identifier]) {
+            return Ok(Expr::Literal(LiteralExpr {
+                value: Some(Identifier),
+            }));
+        }
+                */
+
+        if self.is_match(&[TokenType::Number]) {
+            return Ok(Expr::Literal(LiteralExpr {
+                value: Some(Num(self.source[start..end].parse::<f64>().expect(
+                    "Failed to parse string to float (this should never happen)",
+                ))),
+            }));
+        }
+
         if self.is_match(&[TokenType::LeftParen]) {
             let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after expression");
+            self.consume(TokenType::RightParen, "Expect ')' after expression")?;
             return Ok(Expr::Grouping(GroupingExpr {
                 expression: Box::new(expr),
             }));
@@ -194,18 +214,18 @@ impl<'source> Parser<'source> {
         if !self.is_at_end() {
             self.current += 1;
         }
-        self.previous().unwrap()
-    }
-
-    fn previous(&mut self) -> Option<Token> {
-        let token = self.tokens.get(self.current - 1).copied();
-        println!("{:?}", token);
-        token
+        self.peek().unwrap()
     }
 
     fn peek(&mut self) -> Option<Token> {
         let token = self.tokens.get(self.current).copied();
-        println!("{:?}", token);
+        //println!("{:?}", token);
+        token
+    }
+
+    fn previous(&mut self) -> Option<Token> {
+        let token = self.tokens.get(self.current - 1).copied();
+        //println!("{:?}", token);
         token
     }
 
@@ -217,12 +237,12 @@ impl<'source> Parser<'source> {
         self.advance();
 
         while !self.is_at_end() {
-            if self.previous().unwrap().token_type == Semicolon {
+            if self.peek().unwrap().token_type == Semicolon {
                 return;
             }
 
             match self.peek().unwrap().token_type {
-                Return => {
+                Keyword(Return) => {
                     return;
                 }
                 _ => {}

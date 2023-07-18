@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use crate::error::LoxError;
-use crate::tokenizer::{Object, Token};
+use crate::tokenizer::{Object, Token, TokenType, TokenType::*};
 
 #[derive(Debug)]
 pub enum Expr {
@@ -20,6 +20,12 @@ impl Expr {
             Self::Unary(v) => v.accept(expr_visitor),
         }
     }
+}
+
+#[derive(Debug)]
+pub enum BinaryOperation {
+    Addition,
+    Subtraction,
 }
 
 #[derive(Debug)]

@@ -110,8 +110,11 @@ pub struct Token {
 }
 
 impl Token {
-    pub fn as_string(&self) -> String {
-        format!("{:?}", self.token_type)
+    pub fn as_string(&self, source: &str) -> String {
+        let start = self.span.start;
+        let end = self.span.end;
+
+        format!("{:?}", &source[start..end])
     }
 }
 

@@ -25,7 +25,10 @@ impl<'source> AstPrinter<'source> {
 
 impl ExprVisitor<String> for AstPrinter<'_> {
     fn visit_binary_expr(&self, expr: &BinaryExpr) -> Result<String, LoxError> {
-        self.parenthesize(&expr.operator.as_string(), &[&expr.left, &expr.right])
+        self.parenthesize(
+            &expr.operator.as_string(self.source),
+            &[&expr.left, &expr.right],
+        )
     }
 
     fn visit_grouping_expr(&self, expr: &GroupingExpr) -> Result<String, LoxError> {
@@ -41,6 +44,6 @@ impl ExprVisitor<String> for AstPrinter<'_> {
     }
 
     fn visit_unary_expr(&self, expr: &UnaryExpr) -> Result<String, LoxError> {
-        self.parenthesize(&expr.operator.as_string(), &[&expr.right])
+        self.parenthesize(&expr.operator.as_string(self.source), &[&expr.right])
     }
 }
