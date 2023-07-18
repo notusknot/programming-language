@@ -114,12 +114,12 @@ impl<'source> Parser<'source> {
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
-        if self.is_match(&[TokenType::Keyword(KeywordType::False)]) {
+        if self.is_match(&[Keyword(KeywordType::False)]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Object::False),
             }));
         }
-        if self.is_match(&[TokenType::Keyword(KeywordType::True)]) {
+        if self.is_match(&[Keyword(KeywordType::True)]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Object::True),
             }));
@@ -131,7 +131,7 @@ impl<'source> Parser<'source> {
         }
 
         // TODO: this shouldn't return nil
-        if self.is_match(&[TokenType::Whitespace]) {
+        if self.is_match(&[Whitespace]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Object::Nil),
             }));
@@ -141,7 +141,7 @@ impl<'source> Parser<'source> {
         let end = self.peek().unwrap().span.end;
 
         /* TODO: figure out how to get the literal from the span */
-        if self.is_match(&[TokenType::StringLiteral]) {
+        if self.is_match(&[StringLiteral]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Str(self.source[start..end].to_string())),
             }));
@@ -155,7 +155,7 @@ impl<'source> Parser<'source> {
         }
                 */
 
-        if self.is_match(&[TokenType::Number]) {
+        if self.is_match(&[Number]) {
             return Ok(Expr::Literal(LiteralExpr {
                 value: Some(Num(self.source[start..end].parse::<f64>().expect(
                     "Failed to parse string to float (this should never happen)",
@@ -163,9 +163,9 @@ impl<'source> Parser<'source> {
             }));
         }
 
-        if self.is_match(&[TokenType::LeftParen]) {
+        if self.is_match(&[LeftParen]) {
             let expr = self.expression()?;
-            self.consume(TokenType::RightParen, "Expect ')' after expression")?;
+            self.consume(RightParen, "Expect ')' after expression")?;
             return Ok(Expr::Grouping(GroupingExpr {
                 expression: Box::new(expr),
             }));
