@@ -21,8 +21,9 @@ impl<'source> Parser<'source> {
     }
 
     pub fn parse(&mut self) -> Result<Expr, LoxError> {
+        // this will be expanded on when statements are added
         match self.expression()? {
-            Expr => Ok(Expr),
+            expr => Ok(expr),
             _ => Err(LoxError::error(
                 self.tokens[self.current].span,
                 "asdf",
@@ -110,7 +111,7 @@ impl<'source> Parser<'source> {
             }));
         }
 
-        Ok(self.primary()?)
+        self.primary()
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
@@ -182,7 +183,7 @@ impl<'source> Parser<'source> {
         if self.check(token_type) {
             Ok(self.advance())
         } else {
-            let p = self.peek();
+            let _p = self.peek();
             Err(LoxError::error(
                 self.tokens[self.current].span,
                 message,
@@ -230,7 +231,7 @@ impl<'source> Parser<'source> {
     }
 
     fn is_at_end(&mut self) -> bool {
-        self.peek() == None
+        self.peek().is_none()
     }
 
     fn synchronize(&mut self) {
@@ -241,11 +242,8 @@ impl<'source> Parser<'source> {
                 return;
             }
 
-            match self.peek().unwrap().token_type {
-                Keyword(Return) => {
-                    return;
-                }
-                _ => {}
+            if let Keyword(Return) = self.peek().unwrap().token_type {
+                return;
             }
 
             self.advance();

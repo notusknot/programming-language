@@ -4,7 +4,7 @@ mod parser;
 use parser::*;
 mod scanner;
 mod tokenizer;
-use tokenizer::{Span, Token, TokenType::*};
+use tokenizer::{Token};
 
 use error::LoxError;
 
@@ -24,11 +24,11 @@ fn run_file(path: &str) -> io::Result<()> {
 
 // the result is useless for now but will be useful eventually
 fn execute(source: &str) -> Result<(), LoxError> {
-    let mut scanner = Scanner::new(source);
+    let scanner = Scanner::new(source);
 
     //temporary
     //TODO: use the iterator instead of collecting
-    let mut tokens: Vec<Token> = scanner.collect();
+    let tokens: Vec<Token> = scanner.collect();
     /*
     let last_span = tokens.last().unwrap().span;
     tokens.push(Token {

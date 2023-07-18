@@ -151,7 +151,7 @@ impl<'input> Scanner<'input> {
         Some(StringLiteral)
     }
 
-    fn number(&mut self, start: usize) -> Option<TokenType> {
+    fn number(&mut self, _start: usize) -> Option<TokenType> {
         while self.cursor.peek()?.is_ascii_digit() {
             self.cursor.advance();
         }

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
 use crate::error::LoxError;
-use crate::tokenizer::{Object, Token, TokenType, TokenType::*};
+use crate::tokenizer::{Object, Token};
 
 #[derive(Debug)]
 pub enum Expr {

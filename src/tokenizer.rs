@@ -120,8 +120,8 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let start = self.span.start;
-        let end = self.span.end;
+        let _start = self.span.start;
+        let _end = self.span.end;
         write!(
             f,
             "{:?}",
