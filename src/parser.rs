@@ -1,7 +1,14 @@
-use crate::error::{ErrorType::*, LoxError};
-use crate::expr::*;
+use crate::error::{ErrorType::ParseError, LoxError};
+use crate::expr::{BinaryExpr, Expr, Expr::Literal, GroupingExpr, LiteralExpr, UnaryExpr};
 use crate::tokenizer::{
-    KeywordType, KeywordType::*, Object, Object::*, Token, TokenType, TokenType::*,
+    KeywordType,
+    KeywordType::Return,
+    Object::{False, Nil, Num, Str, True},
+    Token, TokenType,
+    TokenType::{
+        BangEqual, Equal, EqualEqual, Greater, GreaterEqual, Keyword, LeftParen, Less, LessEqual,
+        Minus, Number, Plus, RightParen, Semicolon, Slash, Star, StringLiteral, Whitespace,
+    },
 };
 
 #[derive(Debug)]
@@ -73,7 +80,7 @@ impl<'source> Parser<'source> {
 
         while self.is_match(&[Minus, Plus]) {
             let operator = self.previous().unwrap();
-            println!("{}", operator);
+            println!("{operator}");
             let right = self.factor()?;
             expr = Ok(Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
@@ -115,68 +122,52 @@ impl<'source> Parser<'source> {
     }
 
     fn primary(&mut self) -> Result<Expr, LoxError> {
-        if self.is_match(&[Keyword(KeywordType::False)]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Object::False),
-            }));
-        }
-        if self.is_match(&[Keyword(KeywordType::True)]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Object::True),
-            }));
-        }
-        if self.is_match(&[TokenType::Nil]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Object::Nil),
-            }));
-        }
-
-        // TODO: this shouldn't return nil
-        if self.is_match(&[Whitespace]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Object::Nil),
-            }));
-        }
-
         let start = self.peek().unwrap().span.start;
         let end = self.peek().unwrap().span.end;
 
-        /* TODO: figure out how to get the literal from the span */
-        if self.is_match(&[StringLiteral]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Str(self.source[start..end].to_string())),
-            }));
+        match self.peek().unwrap().token_type {
+            Keyword(KeywordType::False) => {
+                self.advance();
+                Ok(Literal(LiteralExpr { value: False }))
+            }
+            Keyword(KeywordType::True) => {
+                self.advance();
+                Ok(Literal(LiteralExpr { value: True }))
+            }
+            TokenType::Nil => {
+                self.advance();
+                Ok(Literal(LiteralExpr { value: Nil }))
+            }
+            Whitespace => {
+                self.advance();
+                Ok(Literal(LiteralExpr { value: Nil }))
+            }
+            StringLiteral => {
+                self.advance();
+                Ok(Literal(LiteralExpr {
+                    value: Str(self.source[start..end].to_string()),
+                }))
+            }
+            Number => {
+                self.advance();
+                Ok(Literal(LiteralExpr {
+                    value: Num(self.source[start..end].parse::<f64>().unwrap()),
+                }))
+            }
+            LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
+                self.consume(RightParen, "Expect ')' after expression")?;
+                Ok(Expr::Grouping(GroupingExpr {
+                    expression: Box::new(expr),
+                }))
+            }
+            _ => Err(LoxError::error(
+                self.tokens[self.current + 1].span,
+                "Expected expression",
+                ParseError,
+            )),
         }
-
-        /*
-        if self.is_match(&[TokenType::Identifier]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Identifier),
-            }));
-        }
-                */
-
-        if self.is_match(&[Number]) {
-            return Ok(Expr::Literal(LiteralExpr {
-                value: Some(Num(self.source[start..end].parse::<f64>().expect(
-                    "Failed to parse string to float (this should never happen)",
-                ))),
-            }));
-        }
-
-        if self.is_match(&[LeftParen]) {
-            let expr = self.expression()?;
-            self.consume(RightParen, "Expect ')' after expression")?;
-            return Ok(Expr::Grouping(GroupingExpr {
-                expression: Box::new(expr),
-            }));
-        }
-
-        Err(LoxError::error(
-            self.tokens[self.current + 1].span,
-            "Expected expression",
-            ParseError,
-        ))
     }
 
     fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, LoxError> {
@@ -203,7 +194,7 @@ impl<'source> Parser<'source> {
         false
     }
 
-    fn check(&mut self, token_type: TokenType) -> bool {
+    fn check(&self, token_type: TokenType) -> bool {
         if self.is_at_end() {
             false
         } else {
@@ -218,19 +209,15 @@ impl<'source> Parser<'source> {
         self.peek().unwrap()
     }
 
-    fn peek(&mut self) -> Option<Token> {
-        let token = self.tokens.get(self.current).copied();
-        //println!("{:?}", token);
-        token
+    fn peek(&self) -> Option<Token> {
+        self.tokens.get(self.current).copied()
     }
 
-    fn previous(&mut self) -> Option<Token> {
-        let token = self.tokens.get(self.current - 1).copied();
-        //println!("{:?}", token);
-        token
+    fn previous(&self) -> Option<Token> {
+        self.tokens.get(self.current - 1).copied()
     }
 
-    fn is_at_end(&mut self) -> bool {
+    fn is_at_end(&self) -> bool {
         self.peek().is_none()
     }
 
@@ -242,7 +229,7 @@ impl<'source> Parser<'source> {
                 return;
             }
 
-            if let Keyword(Return) = self.peek().unwrap().token_type {
+            if self.peek().unwrap().token_type == Keyword(Return) {
                 return;
             }
 

@@ -1,12 +1,10 @@
 mod error;
 mod expr;
 mod parser;
-use parser::*;
+use parser::Parser;
 mod scanner;
 mod tokenizer;
-use tokenizer::{Token};
-
-use error::LoxError;
+use tokenizer::Token;
 
 use crate::scanner::Scanner;
 use std::env;
@@ -14,44 +12,26 @@ use std::io::{self, stdin, stdout, Write};
 
 fn run_file(path: &str) -> io::Result<()> {
     let file_content = std::fs::read_to_string(path)?;
-    if execute(&file_content).is_err() {
-        // Ignore: error was already reported
-        std::process::exit(65);
-    }
-
+    execute(&file_content);
     Ok(())
 }
 
 // the result is useless for now but will be useful eventually
-fn execute(source: &str) -> Result<(), LoxError> {
+fn execute(source: &str) {
     let scanner = Scanner::new(source);
 
-    //temporary
     //TODO: use the iterator instead of collecting
     let tokens: Vec<Token> = scanner.collect();
-    /*
-    let last_span = tokens.last().unwrap().span;
-    tokens.push(Token {
-        token_type: Eof,
-        span: Span::from(last_span.end + 1..last_span.end + 1),
-    });
-    */
 
     println!("Tokens:");
+
     for token in &tokens {
         println!("{token:?}");
     }
 
     let mut parser = Parser::new(source, tokens);
 
-    /*
-    let printer = AstPrinter { source };
-    println!("\nAST: \n{}", printer.print(&parser.parse()?)?);
     println!("{:#?}", parser.parse());
-    */
-    println!("{:#?}", parser.parse());
-
-    Ok(())
 }
 
 fn run_prompt() {
@@ -64,9 +44,7 @@ fn run_prompt() {
             .read_line(&mut line_input)
             .expect("Failed to read line");
 
-        if execute(&line_input).is_err() {
-            eprintln!("Failed to execute file");
-        };
+        execute(&line_input);
     }
 }
 

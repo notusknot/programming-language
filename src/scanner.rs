@@ -1,6 +1,16 @@
-use crate::tokenizer::{KeywordType, KeywordType::*, Span, Token, TokenType, TokenType::*};
+use crate::tokenizer::{
+    KeywordType,
+    KeywordType::{And, Class, Else, For, Fun, If, Or, Print, Return, Super, This, Var, While},
+    Span, Token, TokenType,
+    TokenType::{
+        Bang, BangEqual, Comma, Comment, Dot, Equal, EqualEqual, Greater, GreaterEqual, Identifier,
+        Keyword, LeftBrace, LeftParen, Less, LessEqual, Minus, Number, Plus, RightBrace,
+        RightParen, Semicolon, Slash, Star, StringLiteral, Unknown, Whitespace,
+    },
+};
 use std::str::Chars;
 
+#[derive(Debug)]
 pub struct Cursor<'source> {
     chars: Chars<'source>,
     byte_pos: usize,
@@ -48,6 +58,7 @@ impl<'input> Cursor<'input> {
     }
 }
 
+#[derive(Debug)]
 pub struct Scanner<'input> {
     source: &'input str,
     cursor: Cursor<'input>,

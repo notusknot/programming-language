@@ -13,16 +13,16 @@ pub enum Object {
 impl fmt::Display for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Object::Num(x) => write!(f, "{x}"),
-            Object::Str(x) => write!(f, "\"{x}\""),
-            Object::Nil => write!(f, "nil"),
-            Object::True => write!(f, "true"),
-            Object::False => write!(f, "false"),
+            Self::Num(x) => write!(f, "{x}"),
+            Self::Str(x) => write!(f, "\"{x}\""),
+            Self::Nil => write!(f, "nil"),
+            Self::True => write!(f, "true"),
+            Self::False => write!(f, "false"),
         }
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {
     // Single-character tokens.
     LeftParen,
@@ -65,7 +65,7 @@ pub enum TokenType {
     Nil,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum KeywordType {
     And,
     Class,
@@ -120,8 +120,6 @@ impl Token {
 
 impl fmt::Display for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let _start = self.span.start;
-        let _end = self.span.end;
         write!(
             f,
             "{:?}",
