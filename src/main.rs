@@ -1,10 +1,14 @@
+mod ast;
 mod error;
-mod expr;
+use error::LoxError;
 mod parser;
 use parser::Parser;
 mod scanner;
-mod tokenizer;
-use tokenizer::Token;
+mod tokens;
+use tokens::Token;
+
+mod interpreter;
+use interpreter::Interpreter;
 
 use crate::scanner::Scanner;
 use std::env;
@@ -17,21 +21,25 @@ fn run_file(path: &str) -> io::Result<()> {
 }
 
 // the result is useless for now but will be useful eventually
-fn execute(source: &str) {
+fn execute(source: &str) -> Result<(), LoxError> {
     let scanner = Scanner::new(source);
-
     //TODO: use the iterator instead of collecting
     let tokens: Vec<Token> = scanner.collect();
-
     println!("Tokens:");
-
     for token in &tokens {
         println!("{token:?}");
     }
 
     let mut parser = Parser::new(source, tokens);
+    let ast = &parser.parse()?;
+    println!("{:#?}", ast);
 
-    println!("{:#?}", parser.parse());
+    /*
+    let mut interpreter = Interpreter::new();
+    println!("{:#?}", interpreter.evaluate(parsed_result));
+    */
+
+    Ok(())
 }
 
 fn run_prompt() {

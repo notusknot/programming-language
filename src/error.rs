@@ -1,4 +1,4 @@
-use crate::tokenizer::Span;
+use crate::tokens::Span;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct LoxError {

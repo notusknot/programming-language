@@ -16,8 +16,8 @@ impl fmt::Display for Object {
             Self::Num(x) => write!(f, "{x}"),
             Self::Str(x) => write!(f, "\"{x}\""),
             Self::Nil => write!(f, "nil"),
-            Self::True => write!(f, "true"),
             Self::False => write!(f, "false"),
+            Self::True => write!(f, "true"),
         }
     }
 }
@@ -59,9 +59,6 @@ pub enum TokenType {
 
     Whitespace,
     Comment,
-
-    True,
-    False,
     Nil,
 }
 

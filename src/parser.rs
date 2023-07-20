@@ -1,6 +1,6 @@
+use crate::ast::{BinaryExpr, Expr, Expr::Literal, GroupingExpr, LiteralExpr, UnaryExpr};
 use crate::error::{ErrorType::ParseError, LoxError};
-use crate::expr::{BinaryExpr, Expr, Expr::Literal, GroupingExpr, LiteralExpr, UnaryExpr};
-use crate::tokenizer::{
+use crate::tokens::{
     KeywordType,
     KeywordType::Return,
     Object::{False, Nil, Num, Str, True},
@@ -80,7 +80,6 @@ impl<'source> Parser<'source> {
 
         while self.is_match(&[Minus, Plus]) {
             let operator = self.previous().unwrap();
-            println!("{operator}");
             let right = self.factor()?;
             expr = Ok(Expr::Binary(BinaryExpr {
                 left: Box::new(expr),
@@ -125,49 +124,31 @@ impl<'source> Parser<'source> {
         let start = self.peek().unwrap().span.start;
         let end = self.peek().unwrap().span.end;
 
-        match self.peek().unwrap().token_type {
-            Keyword(KeywordType::False) => {
-                self.advance();
-                Ok(Literal(LiteralExpr { value: False }))
-            }
-            Keyword(KeywordType::True) => {
-                self.advance();
-                Ok(Literal(LiteralExpr { value: True }))
-            }
-            TokenType::Nil => {
-                self.advance();
-                Ok(Literal(LiteralExpr { value: Nil }))
-            }
-            Whitespace => {
-                self.advance();
-                Ok(Literal(LiteralExpr { value: Nil }))
-            }
-            StringLiteral => {
-                self.advance();
-                Ok(Literal(LiteralExpr {
-                    value: Str(self.source[start..end].to_string()),
-                }))
-            }
-            Number => {
-                self.advance();
-                Ok(Literal(LiteralExpr {
-                    value: Num(self.source[start..end].parse::<f64>().unwrap()),
-                }))
-            }
+        let token_type = self.peek().unwrap().token_type;
+
+        let value = match token_type {
+            Keyword(KeywordType::False) => False,
+            Keyword(KeywordType::True) => True,
+            TokenType::Nil => Nil,
+            Whitespace => Nil,
+            StringLiteral => Str(self.source[start..end].to_string()),
+            Number => Num(self.source[start..end].parse::<f64>().unwrap()),
             LeftParen => {
-                self.advance();
-                let expr = self.expression()?;
                 self.consume(RightParen, "Expect ')' after expression")?;
-                Ok(Expr::Grouping(GroupingExpr {
-                    expression: Box::new(expr),
-                }))
+                return Ok(Expr::Grouping(GroupingExpr {
+                    expression: Box::new(self.expression()?),
+                }));
             }
-            _ => Err(LoxError::error(
-                self.tokens[self.current + 1].span,
-                "Expected expression",
-                ParseError,
-            )),
-        }
+            _ => {
+                return Err(LoxError::error(
+                    self.tokens[self.current + 1].span,
+                    "Expected expression",
+                    ParseError,
+                ))
+            }
+        };
+        self.advance();
+        Ok(Literal(LiteralExpr { value }))
     }
 
     fn consume(&mut self, token_type: TokenType, message: &str) -> Result<Token, LoxError> {
