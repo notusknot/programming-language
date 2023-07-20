@@ -3,7 +3,7 @@ use crate::error::{ErrorType::ParseError, LoxError};
 use crate::tokens::{
     KeywordType,
     KeywordType::Return,
-    Object::{False, Nil, Num, Str, True},
+    Object::{Bool, Nil, Num, Str},
     Token, TokenType,
     TokenType::{
         BangEqual, Equal, EqualEqual, Greater, GreaterEqual, Keyword, LeftParen, Less, LessEqual,
@@ -29,14 +29,20 @@ impl<'source> Parser<'source> {
 
     pub fn parse(&mut self) -> Result<Expr, LoxError> {
         // this will be expanded on when statements are added
+        let statements = vec![];
+        while !self.is_at_end() {
+            statements.push(statement())
+        }
+        /*
         match self.expression()? {
             expr => Ok(expr),
             _ => Err(LoxError::error(
                 self.tokens[self.current].span,
-                "asdf",
+                "Need either statement or expression (how did you even get here?)",
                 ParseError,
             )),
         }
+        */
     }
 
     fn expression(&mut self) -> Result<Expr, LoxError> {
@@ -127,16 +133,22 @@ impl<'source> Parser<'source> {
         let token_type = self.peek().unwrap().token_type;
 
         let value = match token_type {
-            Keyword(KeywordType::False) => False,
-            Keyword(KeywordType::True) => True,
+            Keyword(KeywordType::False) => Bool(false),
+            Keyword(KeywordType::True) => Bool(true),
             TokenType::Nil => Nil,
             Whitespace => Nil,
             StringLiteral => Str(self.source[start..end].to_string()),
-            Number => Num(self.source[start..end].parse::<f64>().unwrap()),
+            Number => {
+                let operator = self.tokens[self.current + 1];
+
+                Num(self.source[start..end].parse::<f64>().unwrap())
+            }
             LeftParen => {
+                self.advance();
+                let expr = self.expression()?;
                 self.consume(RightParen, "Expect ')' after expression")?;
                 return Ok(Expr::Grouping(GroupingExpr {
-                    expression: Box::new(self.expression()?),
+                    expression: Box::new(expr),
                 }));
             }
             _ => {
@@ -155,7 +167,6 @@ impl<'source> Parser<'source> {
         if self.check(token_type) {
             Ok(self.advance())
         } else {
-            let _p = self.peek();
             Err(LoxError::error(
                 self.tokens[self.current].span,
                 message,

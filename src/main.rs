@@ -31,13 +31,26 @@ fn execute(source: &str) -> Result<(), LoxError> {
     }
 
     let mut parser = Parser::new(source, tokens);
-    let ast = &parser.parse()?;
-    println!("{:#?}", ast);
+    let ast = &parser.parse();
+    match ast {
+        Err(e) => e.report(),
+        Ok(x) => println!("{:#?}", x),
+    }
 
-    /*
+    if ast.is_err() {
+        std::process::exit(65);
+    }
+
     let mut interpreter = Interpreter::new();
-    println!("{:#?}", interpreter.evaluate(parsed_result));
-    */
+    let expr = interpreter.evaluate(ast.as_ref().unwrap());
+    match expr {
+        Err(ref e) => e.report(),
+        Ok(ref x) => println!("{:#?}", x),
+    }
+
+    if expr.is_err() {
+        //std::process::exit(70);
+    }
 
     Ok(())
 }

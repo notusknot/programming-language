@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 #![allow(unused_variables)]
+use crate::error::*;
 use crate::tokens::{Object, Token};
+
+// expressions
 
 #[derive(Debug)]
 pub enum Expr {
@@ -41,7 +44,7 @@ pub struct UnaryExpr {
 
 impl Expr {
     /// Accepts a visitor and returns the result of the visit.
-    pub fn accept<T>(&self, visitor: &mut impl ExprVisitor<T>) -> T {
+    pub fn accept<T>(&self, visitor: &mut impl ExprVisitor<T>) -> Result<T, LoxError> {
         use Expr::*;
 
         match self {
@@ -54,8 +57,16 @@ impl Expr {
 }
 
 pub trait ExprVisitor<T> {
-    fn visit_literal_expr(&mut self, literal: &LiteralExpr) -> T;
-    fn visit_unary_expr(&mut self, unary: &UnaryExpr) -> T;
-    fn visit_binary_expr(&mut self, binary: &BinaryExpr) -> T;
-    fn visit_grouping_expr(&mut self, grouping: &GroupingExpr) -> T;
+    fn visit_literal_expr(&mut self, literal: &LiteralExpr) -> Result<T, LoxError>;
+    fn visit_unary_expr(&mut self, unary: &UnaryExpr) -> Result<T, LoxError>;
+    fn visit_binary_expr(&mut self, binary: &BinaryExpr) -> Result<T, LoxError>;
+    fn visit_grouping_expr(&mut self, grouping: &GroupingExpr) -> Result<T, LoxError>;
+}
+
+// statements
+
+#[derive(Debug)]
+pub enum Stmt {
+    Expression(Expr),
+    Print(Expr),
 }

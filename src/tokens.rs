@@ -1,13 +1,12 @@
 use std::fmt;
 use std::ops::Range;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Object {
     Num(f64),
     Str(String),
     Nil,
-    True,
-    False,
+    Bool(bool),
 }
 
 impl fmt::Display for Object {
@@ -16,8 +15,10 @@ impl fmt::Display for Object {
             Self::Num(x) => write!(f, "{x}"),
             Self::Str(x) => write!(f, "\"{x}\""),
             Self::Nil => write!(f, "nil"),
-            Self::False => write!(f, "false"),
-            Self::True => write!(f, "true"),
+            Self::Bool(x) => match x {
+                true => write!(f, "true"),
+                false => write!(f, "false"),
+            },
         }
     }
 }
@@ -100,7 +101,7 @@ impl From<Range<usize>> for Span {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Token {
     pub token_type: TokenType,
     pub span: Span,
