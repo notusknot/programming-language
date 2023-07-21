@@ -67,6 +67,43 @@ pub trait ExprVisitor<T> {
 
 #[derive(Debug)]
 pub enum Stmt {
-    Expression(Expr),
-    Print(Expr),
+    Expression(ExpressionStmt),
+    Print(PrintStmt),
+    Var,
+}
+
+impl Stmt {
+    pub fn accept<T>(&self, stmt_visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
+        match self {
+            Stmt::Expression(v) => v.accept(stmt_visitor),
+            Stmt::Print(v) => v.accept(stmt_visitor),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ExpressionStmt {
+    pub expression: Expr,
+}
+
+#[derive(Debug)]
+pub struct PrintStmt {
+    pub expression: Expr,
+}
+
+pub trait StmtVisitor<T> {
+    fn visit_expr(&mut self, expr: &ExpressionStmt) -> Result<T, LoxError>;
+    fn visit_print(&mut self, expr: &PrintStmt) -> Result<T, LoxError>;
+}
+
+impl ExpressionStmt {
+    pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_expr(self)
+    }
+}
+
+impl PrintStmt {
+    pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_print(self)
+    }
 }

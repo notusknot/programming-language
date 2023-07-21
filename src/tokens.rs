@@ -6,6 +6,7 @@ pub enum Object {
     Num(f64),
     Str(String),
     Nil,
+    Whitespace,
     Bool(bool),
 }
 
@@ -15,6 +16,7 @@ impl fmt::Display for Object {
             Self::Num(x) => write!(f, "{x}"),
             Self::Str(x) => write!(f, "\"{x}\""),
             Self::Nil => write!(f, "nil"),
+            Self::Whitespace => write!(f, " "),
             Self::Bool(x) => match x {
                 true => write!(f, "true"),
                 false => write!(f, "false"),

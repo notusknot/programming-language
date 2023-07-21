@@ -6,6 +6,22 @@ impl Interpreter {
     pub fn new() -> Self {
         Self
     }
+
+    pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<(), LoxError> {
+        for statement in statements {
+            if let Err(e) = self.execute(statement) {
+                e.report();
+                break;
+            }
+        }
+        Ok(())
+    }
+
+    pub fn execute(&mut self, stmt: &Stmt) -> Result<(), LoxError> {
+        // statements dont return anything so we return an empty ok
+        stmt.accept(self)
+    }
+
     pub fn evaluate(&mut self, expr: &Expr) -> Result<Object, LoxError> {
         expr.accept(self)
     }
@@ -74,5 +90,18 @@ impl ExprVisitor<Object> for Interpreter {
     }
     fn visit_grouping_expr(&mut self, grouping: &GroupingExpr) -> Result<Object, LoxError> {
         Ok(self.evaluate(&grouping.expression)?)
+    }
+}
+
+impl StmtVisitor<()> for Interpreter {
+    fn visit_expr(&mut self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
+        self.evaluate(&stmt.expression)?;
+        Ok(())
+    }
+
+    fn visit_print(&mut self, stmt: &PrintStmt) -> Result<(), LoxError> {
+        let value = self.evaluate(&stmt.expression)?;
+        println!("{value}");
+        Ok(())
     }
 }
