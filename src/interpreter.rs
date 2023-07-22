@@ -1,10 +1,16 @@
-pub struct Interpreter;
+use crate::{ast::*, environment::*, error::*, tokens::*};
 
-use crate::{ast::*, error::*, tokens::*};
+pub struct Interpreter<'a> {
+    environment: Environment<'a>,
+    source: &'a str,
+}
 
-impl Interpreter {
-    pub fn new() -> Self {
-        Self
+impl<'a> Interpreter<'a> {
+    pub fn new(source: &'a str) -> Self {
+        Self {
+            environment: Environment::new(source),
+            source,
+        }
     }
 
     pub fn interpret(&mut self, statements: &Vec<Stmt>) -> Result<(), LoxError> {
@@ -27,7 +33,7 @@ impl Interpreter {
     }
 }
 
-impl ExprVisitor<Object> for Interpreter {
+impl ExprVisitor<Object> for Interpreter<'_> {
     fn visit_unary_expr(&mut self, unary: &UnaryExpr) -> Result<Object, LoxError> {
         let right = self.evaluate(&unary.right)?;
 
@@ -89,11 +95,16 @@ impl ExprVisitor<Object> for Interpreter {
         }
     }
     fn visit_grouping_expr(&mut self, grouping: &GroupingExpr) -> Result<Object, LoxError> {
-        Ok(self.evaluate(&grouping.expression)?)
+        self.evaluate(&grouping.expression)
+    }
+
+    fn visit_variable_expr(&mut self, expr: &VariableExpr) -> Result<Object, LoxError> {
+        // TODO: Shouldn't copy
+        self.environment.get(expr.name).cloned()
     }
 }
 
-impl StmtVisitor<()> for Interpreter {
+impl StmtVisitor<()> for Interpreter<'_> {
     fn visit_expr(&mut self, stmt: &ExpressionStmt) -> Result<(), LoxError> {
         self.evaluate(&stmt.expression)?;
         Ok(())
@@ -101,7 +112,23 @@ impl StmtVisitor<()> for Interpreter {
 
     fn visit_print(&mut self, stmt: &PrintStmt) -> Result<(), LoxError> {
         let value = self.evaluate(&stmt.expression)?;
-        println!("{value}");
+        println!("{}", value);
         Ok(())
+    }
+
+    fn visit_var(&mut self, stmt: &VarStmt) -> Result<(), LoxError> {
+        if stmt.initializer.is_some() {
+            let value = Some(self.evaluate(&stmt.initializer.as_ref().unwrap())?);
+            println!("{:?}", value);
+            self.environment
+                .define(stmt.name.as_string(&self.source), value);
+            Ok(())
+        } else {
+            return Err(LoxError::error(
+                stmt.name.span,
+                "Cannot use uninitialized value",
+                ErrorType::RuntimeError,
+            ));
+        }
     }
 }

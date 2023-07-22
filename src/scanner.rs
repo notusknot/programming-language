@@ -1,13 +1,4 @@
-use crate::tokens::{
-    KeywordType,
-    KeywordType::{And, Class, Else, For, Fun, If, Or, Print, Return, Super, This, Var, While},
-    Span, Token, TokenType,
-    TokenType::{
-        Bang, BangEqual, Comma, Comment, Dot, Equal, EqualEqual, Greater, GreaterEqual, Identifier,
-        Keyword, LeftBrace, LeftParen, Less, LessEqual, Minus, Number, Plus, RightBrace,
-        RightParen, Semicolon, Slash, Star, StringLiteral, Unknown, Whitespace,
-    },
-};
+use crate::tokens::{KeywordType::*, TokenType::Keyword, *};
 use std::str::Chars;
 
 #[derive(Debug)]
@@ -90,55 +81,55 @@ impl<'input> Scanner<'input> {
             '0'..='9' => self.number(start)?,
             'a'..='z' | 'A'..='Z' => self.identifier_or_keyword(start),
             c if c.is_whitespace() => self.whitespace(),
-            '(' => LeftParen,
-            ')' => RightParen,
-            '{' => LeftBrace,
-            '}' => RightBrace,
-            ',' => Comma,
-            '.' => Dot,
-            '-' => Minus,
-            '+' => Plus,
-            ';' => Semicolon,
-            '*' => Star,
+            '(' => TokenType::LeftParen,
+            ')' => TokenType::RightParen,
+            '{' => TokenType::LeftBrace,
+            '}' => TokenType::RightBrace,
+            ',' => TokenType::Comma,
+            '.' => TokenType::Dot,
+            '-' => TokenType::Minus,
+            '+' => TokenType::Plus,
+            ';' => TokenType::Semicolon,
+            '*' => TokenType::Star,
             '!' => {
                 if self.cursor.advance_if('=') {
-                    BangEqual
+                    TokenType::BangEqual
                 } else {
-                    Bang
+                    TokenType::Bang
                 }
             }
             '=' => {
                 if self.cursor.advance_if('=') {
-                    EqualEqual
+                    TokenType::EqualEqual
                 } else {
-                    Equal
+                    TokenType::Equal
                 }
             }
             '<' => {
                 if self.cursor.advance_if('=') {
-                    LessEqual
+                    TokenType::LessEqual
                 } else {
-                    Less
+                    TokenType::Less
                 }
             }
             '>' => {
                 if self.cursor.advance_if('=') {
-                    GreaterEqual
+                    TokenType::GreaterEqual
                 } else {
-                    Greater
+                    TokenType::Greater
                 }
             }
             '/' => {
                 match self.cursor.peek() {
                     Some('/') => {
                         self.cursor.skip_while(|c| c != '\n'); // Comment ends at the end of line
-                        Comment
+                        TokenType::Comment
                     }
-                    _ => Slash,
+                    _ => TokenType::Slash,
                 }
             }
 
-            _ => Unknown,
+            _ => TokenType::Unknown,
         };
         let span = Span::from(start..self.cursor.byte_pos);
 
@@ -159,7 +150,7 @@ impl<'input> Scanner<'input> {
         // the closing "
         self.cursor.advance();
 
-        Some(StringLiteral)
+        Some(TokenType::StringLiteral)
     }
 
     fn number(&mut self, _start: usize) -> Option<TokenType> {
@@ -175,10 +166,7 @@ impl<'input> Scanner<'input> {
             }
         }
 
-        //let number_text = &self.source[start..self.cursor.byte_pos];
-        //let value: f32 = number_text.parse().expect("Failed to parse number");
-        //Some(Number(value))
-        Some(Number)
+        Some(TokenType::Number)
     }
 
     fn identifier_or_keyword(&mut self, start: usize) -> TokenType {
@@ -203,12 +191,12 @@ impl<'input> Scanner<'input> {
             "true" => Keyword(KeywordType::True),
             "var" => Keyword(Var),
             "while" => Keyword(While),
-            _ => Identifier,
+            _ => TokenType::Identifier,
         }
     }
 
     fn whitespace(&mut self) -> TokenType {
         self.cursor.skip_while(char::is_whitespace);
-        Whitespace
+        TokenType::Whitespace
     }
 }

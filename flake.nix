@@ -14,7 +14,7 @@
       {
         defaultPackage = naersk-lib.buildPackage ./.;
         devShell = with pkgs; mkShell {
-          buildInputs = [linuxKernel.packages.linux_zen.perf perf-tools hyperfine rust-analyzer cargo rustc rustfmt pre-commit rustPackages.clippy ];
+          buildInputs = [bacon linuxKernel.packages.linux_zen.perf perf-tools hyperfine rust-analyzer cargo rustc rustfmt pre-commit rustPackages.clippy ];
           RUST_SRC_PATH = rustPlatform.rustLibSrc;
         };
       });

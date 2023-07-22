@@ -11,6 +11,7 @@ pub enum Expr {
     Grouping(GroupingExpr),
     Literal(LiteralExpr),
     Unary(UnaryExpr),
+    Variable(VariableExpr),
 }
 
 #[derive(Debug)]
@@ -42,6 +43,11 @@ pub struct UnaryExpr {
     pub right: Box<Expr>,
 }
 
+#[derive(Debug)]
+pub struct VariableExpr {
+    pub name: Token,
+}
+
 impl Expr {
     /// Accepts a visitor and returns the result of the visit.
     pub fn accept<T>(&self, visitor: &mut impl ExprVisitor<T>) -> Result<T, LoxError> {
@@ -52,6 +58,7 @@ impl Expr {
             Unary(args) => visitor.visit_unary_expr(args),
             Binary(args) => visitor.visit_binary_expr(args),
             Grouping(args) => visitor.visit_grouping_expr(args),
+            Variable(args) => visitor.visit_variable_expr(args),
         }
     }
 }
@@ -61,6 +68,7 @@ pub trait ExprVisitor<T> {
     fn visit_unary_expr(&mut self, unary: &UnaryExpr) -> Result<T, LoxError>;
     fn visit_binary_expr(&mut self, binary: &BinaryExpr) -> Result<T, LoxError>;
     fn visit_grouping_expr(&mut self, grouping: &GroupingExpr) -> Result<T, LoxError>;
+    fn visit_variable_expr(&mut self, variable: &VariableExpr) -> Result<T, LoxError>;
 }
 
 // statements
@@ -69,16 +77,7 @@ pub trait ExprVisitor<T> {
 pub enum Stmt {
     Expression(ExpressionStmt),
     Print(PrintStmt),
-    Var,
-}
-
-impl Stmt {
-    pub fn accept<T>(&self, stmt_visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
-        match self {
-            Stmt::Expression(v) => v.accept(stmt_visitor),
-            Stmt::Print(v) => v.accept(stmt_visitor),
-        }
-    }
+    Var(VarStmt),
 }
 
 #[derive(Debug)]
@@ -91,9 +90,26 @@ pub struct PrintStmt {
     pub expression: Expr,
 }
 
+#[derive(Debug)]
+pub struct VarStmt {
+    pub name: Token,
+    pub initializer: Option<Expr>,
+}
+
+impl Stmt {
+    pub fn accept<T>(&self, stmt_visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
+        match self {
+            Stmt::Expression(v) => v.accept(stmt_visitor),
+            Stmt::Print(v) => v.accept(stmt_visitor),
+            Stmt::Var(v) => v.accept(stmt_visitor),
+        }
+    }
+}
+
 pub trait StmtVisitor<T> {
     fn visit_expr(&mut self, expr: &ExpressionStmt) -> Result<T, LoxError>;
     fn visit_print(&mut self, expr: &PrintStmt) -> Result<T, LoxError>;
+    fn visit_var(&mut self, expr: &VarStmt) -> Result<T, LoxError>;
 }
 
 impl ExpressionStmt {
@@ -105,5 +121,11 @@ impl ExpressionStmt {
 impl PrintStmt {
     pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
         visitor.visit_print(self)
+    }
+}
+
+impl VarStmt {
+    pub fn accept<T>(&self, visitor: &mut dyn StmtVisitor<T>) -> Result<T, LoxError> {
+        visitor.visit_var(self)
     }
 }
